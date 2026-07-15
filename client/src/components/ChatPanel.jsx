@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, memo } from "react";
 
 const SAMPLE_QUERIES = [
   "Where is the nearest restroom?",
@@ -9,7 +9,7 @@ const SAMPLE_QUERIES = [
   "Which gate is least crowded?",
 ];
 
-export default function ChatPanel({ messages, onSend, loading, error }) {
+function ChatPanel({ messages, onSend, loading, error }) {
   const [input, setInput] = useState("");
   const messagesEndRef = useRef(null);
 
@@ -33,7 +33,7 @@ export default function ChatPanel({ messages, onSend, loading, error }) {
 
   return (
     <div className="chat-panel">
-      <div className="chat-messages">
+      <div className="chat-messages" role="log" aria-live="polite" aria-label="Chat conversation">
         {messages.length === 0 ? (
           <div className="chat-empty">
             <h3>Welcome to StadiumPilot</h3>
@@ -81,7 +81,11 @@ export default function ChatPanel({ messages, onSend, loading, error }) {
       </div>
 
       <form className="chat-input-area" onSubmit={handleSubmit}>
+        <label htmlFor="chat-input" className="sr-only">
+          Ask StadiumPilot a question
+        </label>
         <input
+          id="chat-input"
           className="chat-input"
           type="text"
           value={input}
@@ -96,3 +100,5 @@ export default function ChatPanel({ messages, onSend, loading, error }) {
     </div>
   );
 }
+
+export default memo(ChatPanel);

@@ -6,7 +6,9 @@ import ReasoningPanel from "./components/ReasoningPanel.jsx";
 import DietarySelector from "./components/DietarySelector.jsx";
 import "./App.css";
 
-const API_BASE = "/api";
+// Same-origin "/api" for local dev (Vite proxy) and single-origin deploys (Vercel/Netlify).
+// Set VITE_API_BASE_URL at build time when frontend and backend are separate origins (Render).
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
 
 export default function App() {
   const [messages, setMessages] = useState([]);
@@ -101,8 +103,8 @@ export default function App() {
   return (
     <div className="app">
       <Header />
-      <div className="main-layout">
-        <div className="map-area">
+      <main className="main-layout">
+        <div className="map-area" role="region" aria-label="Stadium map">
           <StadiumMap
             stadiumData={stadiumData}
             activeRoute={activeRoute}
@@ -111,8 +113,9 @@ export default function App() {
         </div>
         <div className="sidebar">
           <div className="profile-section">
-            <label className="field-label">Your Location</label>
+            <label className="field-label" htmlFor="location-select">Your Location</label>
             <select
+              id="location-select"
               className="location-select"
               value={profile.location}
               onChange={(e) =>
@@ -131,8 +134,9 @@ export default function App() {
               ))}
             </select>
 
-            <label className="field-label">Accessibility</label>
+            <label className="field-label" htmlFor="accessibility-select">Accessibility</label>
             <select
+              id="accessibility-select"
               className="location-select"
               value={profile.accessibility}
               onChange={(e) =>
@@ -162,7 +166,7 @@ export default function App() {
 
           {reasoning && <ReasoningPanel reasoning={reasoning} />}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 
 const DIETARY_OPTIONS = [
   { id: "vegetarian", label: "Vegetarian" },
@@ -9,7 +9,7 @@ const DIETARY_OPTIONS = [
   { id: "kosher", label: "Kosher" },
 ];
 
-export default function DietarySelector({ selected, onChange }) {
+function DietarySelector({ selected, onChange }) {
   const toggle = (id) => {
     if (selected.includes(id)) {
       onChange(selected.filter((d) => d !== id));
@@ -20,20 +20,26 @@ export default function DietarySelector({ selected, onChange }) {
 
   return (
     <div>
-      <label className="field-label">Dietary Restrictions</label>
-      <div className="chip-group">
-        {DIETARY_OPTIONS.map((opt) => (
-          <button
-            key={opt.id}
-            type="button"
-            className={`chip ${selected.includes(opt.id) ? "selected" : ""}`}
-            onClick={() => toggle(opt.id)}
-          >
-            {opt.label}
-            {selected.includes(opt.id) && <span className="chip-x">×</span>}
-          </button>
-        ))}
+      <label className="field-label" id="dietary-label">Dietary Restrictions</label>
+      <div className="chip-group" role="group" aria-labelledby="dietary-label">
+        {DIETARY_OPTIONS.map((opt) => {
+          const isSelected = selected.includes(opt.id);
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              className={`chip ${isSelected ? "selected" : ""}`}
+              aria-pressed={isSelected}
+              onClick={() => toggle(opt.id)}
+            >
+              {opt.label}
+              {isSelected && <span className="chip-x" aria-hidden="true">×</span>}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 }
+
+export default memo(DietarySelector);
