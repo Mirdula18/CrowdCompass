@@ -9,7 +9,10 @@ const PORT = process.env.PORT || 3001;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = "gemini-3.1-flash-lite";
 
-app.use(cors());
+// In production, restrict to the deployed frontend origin via FRONTEND_URL.
+// Falls back to allowing all origins for local dev / same-origin deploys (Vercel/Netlify).
+const FRONTEND_URL = process.env.FRONTEND_URL;
+app.use(cors(FRONTEND_URL ? { origin: FRONTEND_URL } : {}));
 app.use(express.json({ limit: "1mb" }));
 
 if (!GEMINI_API_KEY) {
