@@ -10,10 +10,10 @@
 - [x] Phase 1 done? (OpenCode)
 - [x] Phase 2 done? (Claude Code)
 - [x] Phase 3 done? (Claude Code)
-- [ ] Phase 4 done? (Claude Code)
+- [x] Phase 4 done? (Claude Code)
 - [x] Phase 5 done? (Claude Code)
 - [ ] Phase 6 done? (Claude Code)
-- [ ] Phase 7 done? (Claude Code)
+- [ ] Phase 7 done? (Claude Code + you)
 
 ---
 
@@ -39,10 +39,16 @@
 ✅ **Exit condition:** typing a question in the UI produces a real AI-generated answer + route + reasoning, end to end.
 
 ## Phase 4 — UI polish — **Claude Code**
-- [ ] Map labels/icons don't overlap at any fan position
-- [ ] Dietary selector uses chips, not a native multi-select
-- [ ] Clear visual hierarchy: current location + active route dominate; other elements are quiet
-- [ ] Consistent spacing in header controls, clear type scale
+- [x] Map labels/icons don't overlap at any fan position — fixed two root causes: three of four
+      gate coordinates were identical to their zone center (guaranteed collision with section/
+      amenity markers), and the per-section jitter offsets were too small (~9-13m) to separate
+      labels at any usable zoom. Widened the jitter, pushed gates to the perimeter, aligned the
+      "current location" marker to the same computed position as its section label, and set the
+      map to a zoom range (17-19) where the fixed offsets read cleanly. Verified via screenshot
+      at the default view, a gate location, and the mobile breakpoint.
+- [x] Dietary selector uses chips, not a native multi-select (already true — `DietarySelector.jsx`)
+- [x] Clear visual hierarchy: current location + active route dominate; other elements are quiet
+- [x] Consistent spacing in header controls, clear type scale
 ✅ **Exit condition:** screenshot the full app — nothing overlaps, hierarchy is obvious at a glance.
 
 ## Phase 5 — Edge cases — **Claude Code** (scored explicitly — do not skip)

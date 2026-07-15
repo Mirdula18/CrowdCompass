@@ -1,0 +1,31 @@
+services:
+  # Backend — Express API that proxies to Gemini. GEMINI_API_KEY must be set
+  # manually in the Render dashboard (Environment tab) as a secret; it is not
+  # committed here.
+  - name: stadiumpilot-api
+    type: web
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        value: https://stadiumpilot.onrender.com
+
+  # Frontend — static React build. VITE_API_BASE_URL points at the backend
+  # service above; Render assigns https://<name>.onrender.com deterministically
+  # for a fresh, unused service name — if "stadiumpilot-api" is already taken,
+  # update this value (and FRONTEND_URL above) to match the real assigned URL
+  # and redeploy both services.
+  - name: stadiumpilot
+    type: web
+    runtime: static
+    rootDir: client
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://stadiumpilot-api.onrender.com/api

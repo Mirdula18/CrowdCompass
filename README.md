@@ -47,7 +47,43 @@ _(pending deployment)_
 | Layer | Technology |
 |---|---|
 | Frontend | React 19 + Vite 6, Leaflet (react-leaflet) for maps |
-| Backend | Node.js + Express, direct Gemini REST API calls |
+| Backend | Node.js + Express, direct Gemini REST API calls (no SDK) |
 | AI | Google Gemini API (`gemini-3.1-flash-lite`), structured JSON output |
-| Deployment | Vercel (or Netlify) — static frontend + serverless API |
+| Deployment | Render — Web Service (backend) + Static Site (frontend). `vercel.json`/`netlify.toml` also present as alternatives. |
 | Data | Synthetic live stadium data (crowd density, gate status update every 5s) |
+
+## Deploy to Render
+
+The repo includes a `render.yaml` Blueprint that provisions both services in one
+pass: `stadiumpilot-api` (Node Web Service, root dir `server`) and `stadiumpilot`
+(Static Site, root dir `client`). Frontend and backend are separate origins on
+Render, so the frontend is built with `VITE_API_BASE_URL` pointing at the
+backend's URL instead of relying on same-origin `/api` rewrites (that's the
+Vercel/Netlify approach — see `vercel.json`/`netlify.toml`).
+
+1. Push this repo to GitHub (Render deploys from a connected repo).
+2. In the Render dashboard: **New > Blueprint**, select the repo. Render reads
+   `render.yaml` and proposes both services.
+3. Before the first deploy, set the required secret:
+   - Select the `stadiumpilot-api` service → **Environment** tab → add
+     `GEMINI_API_KEY` with your real Google AI Studio key. (`render.yaml`
+     declares this var with `sync: false` so Render prompts for it rather than
+     expecting it in the file — the key is never committed.)
+4. Deploy. Render assigns each service a URL of the form
+   `https://<service-name>.onrender.com`. `render.yaml` assumes
+   `stadiumpilot-api` and `stadiumpilot` are available; if either name is
+   already taken, Render will suffix it — in that case update `FRONTEND_URL`
+   (on the backend service) and `VITE_API_BASE_URL` (on the frontend service)
+   in the Render dashboard to match the real assigned URLs, then trigger a
+   manual redeploy of both.
+5. Verify end-to-end: open the frontend URL, send a chat message, and confirm
+   a real (non-instant, varying) AI response comes back with a populated
+   reasoning panel — that confirms the deployed backend is actually calling
+   Gemini, not serving anything static.
+
+Environment variables, summarized:
+| Service | Variable | Where set | Purpose |
+|---|---|---|---|
+| `stadiumpilot-api` | `GEMINI_API_KEY` | Render dashboard (secret) | Server-side only, required |
+| `stadiumpilot-api` | `FRONTEND_URL` | `render.yaml` / dashboard | Restricts CORS to the deployed frontend |
+| `stadiumpilot` | `VITE_API_BASE_URL` | `render.yaml` / dashboard | Backend URL, baked in at build time |
