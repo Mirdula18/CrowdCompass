@@ -1,12 +1,12 @@
-import React from "react";
+import React, { memo } from "react";
 
-export default function ReasoningPanel({ reasoning }) {
+function ReasoningPanel({ reasoning }) {
   if (!reasoning) return null;
 
   const { text, alert_level, clarifying_question, route } = reasoning;
 
   return (
-    <div className="reasoning-panel">
+    <div className="reasoning-panel" role="region" aria-live="polite" aria-label="Why this route">
       <div className="reasoning-header">
         <h4>Why This Route</h4>
         {alert_level && (
@@ -35,3 +35,5 @@ export default function ReasoningPanel({ reasoning }) {
     </div>
   );
 }
+
+export default memo(ReasoningPanel);

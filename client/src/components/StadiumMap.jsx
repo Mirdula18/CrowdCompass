@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, memo } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker, useMap } from "react-leaflet";
 import L from "leaflet";
 
@@ -9,22 +9,13 @@ const CROWD_COLORS = {
   very_high: "#9c27b0",
 };
 
-function createCrowdIcon(color, size = 16) {
-  return L.divIcon({
-    className: "",
-    html: `<div class="crowd-dot" style="width:${size}px;height:${size}px;background:${color};"></div>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-  });
-}
-
 function LabelMarker({ position, text, offset = [0, -14] }) {
   return (
     <Marker
       position={position}
       icon={L.divIcon({
         className: "marker-label",
-        html: `<div style="font-size:11px;font-weight:600;color:#333;text-shadow:1px 1px 2px white,-1px -1px 2px white;white-space:nowrap;">${text}</div>`,
+        html: `<div role="img" aria-label="${text}" style="font-size:11px;font-weight:600;color:#333;text-shadow:1px 1px 2px white,-1px -1px 2px white;white-space:nowrap;">${text}</div>`,
         iconSize: [0, 0],
         iconAnchor: offset,
       })}
@@ -42,7 +33,7 @@ function FlyToLocation({ center }) {
   return null;
 }
 
-export default function StadiumMap({ stadiumData, activeRoute, profile }) {
+function StadiumMap({ stadiumData, activeRoute, profile }) {
   const center = [40.8125, -74.0735];
 
   const sectionMarkers = useMemo(() => {
@@ -58,8 +49,8 @@ export default function StadiumMap({ stadiumData, activeRoute, profile }) {
       const zoneDir = { north: [1, 0], south: [-1, 0], east: [0, -1], west: [0, 1] };
       const dir = zoneDir[zone] || [0, 0];
       secs.forEach((sec, idx) => {
-        const levelOffset = (sec.level - 1) * 0.00008;
-        const idxOffset = (idx - (secs.length - 1) / 2) * 0.00012;
+        const levelOffset = (sec.level - 1) * 0.0004;
+        const idxOffset = (idx - (secs.length - 1) / 2) * 0.0006;
         const lat = zoneCoords.lat + dir[0] * levelOffset + dir[1] * idxOffset;
         const lng = zoneCoords.lng + dir[1] * levelOffset + dir[0] * idxOffset;
         result.push({ ...sec, position: [lat, lng] });
@@ -88,13 +79,10 @@ export default function StadiumMap({ stadiumData, activeRoute, profile }) {
     const loc = profile.location;
     const gate = stadiumData.layout.gates.find((g) => g.name === loc);
     if (gate) return [gate.lat, gate.lng];
-    const section = stadiumData.layout.sections.find((s) => s.name === loc);
-    if (section) {
-      const z = stadiumData.layout.zones[section.zone];
-      return [z.lat, z.lng];
-    }
+    const section = sectionMarkers.find((s) => s.name === loc);
+    if (section) return section.position;
     return null;
-  }, [profile.location, stadiumData]);
+  }, [profile.location, stadiumData, sectionMarkers]);
 
   const amenityTypeIcons = {
     food: "🍔",
@@ -109,7 +97,9 @@ export default function StadiumMap({ stadiumData, activeRoute, profile }) {
     <div className="stadium-map-container">
       <MapContainer
         center={center}
-        zoom={16}
+        zoom={18}
+        minZoom={17}
+        maxZoom={19}
         style={{ width: "100%", height: "100%" }}
         zoomControl={true}
       >
@@ -155,7 +145,7 @@ export default function StadiumMap({ stadiumData, activeRoute, profile }) {
                 position={[gate.lat, gate.lng]}
                 icon={L.divIcon({
                   className: "",
-                  html: `<div style="background:${isOpen ? "#1e8e3e" : "#d93025"};color:white;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.3);">${isOpen ? "●" : "✕"} ${gate.name}</div>`,
+                  html: `<div role="img" aria-label="${gate.name}, ${isOpen ? "open" : "closed"}" style="background:${isOpen ? "#1e8e3e" : "#d93025"};color:white;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.3);">${isOpen ? "●" : "✕"} ${gate.name}</div>`,
                   iconSize: [0, 0],
                   iconAnchor: [0, -10],
                 })}
@@ -171,7 +161,7 @@ export default function StadiumMap({ stadiumData, activeRoute, profile }) {
             position={[am.lat, am.lng]}
             icon={L.divIcon({
               className: "",
-              html: `<div style="font-size:16px;text-shadow:0 1px 2px rgba(0,0,0,0.2);">${amenityTypeIcons[am.type] || "📍"}</div>`,
+              html: `<div role="img" aria-label="${am.name} (${am.type}${am.wheelchair_accessible ? ", wheelchair accessible" : ""})" style="font-size:16px;text-shadow:0 1px 2px rgba(0,0,0,0.2);">${amenityTypeIcons[am.type] || "📍"}</div>`,
               iconSize: [16, 16],
               iconAnchor: [8, 8],
             })}
@@ -201,7 +191,7 @@ export default function StadiumMap({ stadiumData, activeRoute, profile }) {
               position={profileLocation}
               icon={L.divIcon({
                 className: "",
-                html: `<div class="current-location-marker" style="width:24px;height:24px;background:#1a73e8;border:3px solid white;border-radius:50%;box-shadow:0 0 0 2px #1a73e8, 0 2px 8px rgba(0,0,0,0.4);"></div>`,
+                html: `<div class="current-location-marker" role="img" aria-label="Your location: ${profile.location}" style="width:24px;height:24px;background:#1a73e8;border:3px solid white;border-radius:50%;box-shadow:0 0 0 2px #1a73e8, 0 2px 8px rgba(0,0,0,0.4);"></div>`,
                 iconSize: [24, 24],
                 iconAnchor: [12, 12],
               })}
@@ -239,3 +229,5 @@ export default function StadiumMap({ stadiumData, activeRoute, profile }) {
     </div>
   );
 }
+
+export default memo(StadiumMap);
