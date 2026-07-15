@@ -139,6 +139,36 @@ const testCases = [
     },
   },
   {
+    name: "Unsupported/rare language → graceful fallback",
+    description: "Fan writes in Latin, a language the assistant has little practical reason to expect from a live fan. Should not crash or break the JSON contract — should degrade gracefully (best-effort detection/answer, or a clarifying question), never an empty/malformed response.",
+    message: "Ubi est taberna cibi sine nucibus proxima?",
+    profile: { location: "Section 108", accessibility: "none", dietary: ["nut-free"] },
+    validate: (res) => {
+      const checks = [];
+      if (res.language_detected && res.language_detected.length > 0) {
+        checks.push("PASS: language_detected populated: " + res.language_detected);
+      } else {
+        checks.push("FAIL: language_detected missing or empty");
+      }
+      if ((res.answer && res.answer.length > 0) || (res.clarifying_question && res.clarifying_question.length > 0)) {
+        checks.push("PASS: Response has a substantive answer or a clarifying question (graceful, not empty/broken)");
+      } else {
+        checks.push("FAIL: No answer and no clarifying question — not a graceful fallback");
+      }
+      if (["normal", "caution", "emergency"].includes(res.alert_level)) {
+        checks.push("PASS: alert_level is a valid enum value: " + res.alert_level);
+      } else {
+        checks.push("FAIL: alert_level is invalid: " + res.alert_level);
+      }
+      if (Array.isArray(res.route)) {
+        checks.push("PASS: route is an array (contract intact)");
+      } else {
+        checks.push("FAIL: route is not an array — JSON contract broken");
+      }
+      return checks;
+    },
+  },
+  {
     name: "Normal navigation query → correct route and reasoning",
     description: "Standard question about nearest restroom.",
     message: "Where is the nearest restroom?",

@@ -10,7 +10,7 @@ building this repo, not the app's own AI.
 ---
 
 ## 0. Model provider
-Google Gemini API, model `gemini-2.5-flash` — free tier, no cost, no card required (Google AI
+Google Gemini API, model `gemini-3.1-flash-lite` — free tier, no cost, no card required (Google AI
 Studio). The challenge rules explicitly allow any AI tool. This design is provider-agnostic:
 the system prompt, user prompt template, and JSON contract below work with any capable LLM,
 so switching providers later only requires changing the API call, not this document.

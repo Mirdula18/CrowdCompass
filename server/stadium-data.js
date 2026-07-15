@@ -17,12 +17,14 @@ export const stadiumLayout = {
     { id: "sec_112", name: "Section 112", zone: "west", level: 3, seats: 350, wheelchair_accessible: false, stairs_only: true },
   ],
 
+  // Gates sit on the outer perimeter, clear of the zone-center cluster where
+  // section/amenity markers are jittered — otherwise gate and section labels collide on the map.
   gates: [
-    { id: "gate_n", name: "North Gate", zone: "north", open: true, lat: 40.8140, lng: -74.0742 },
-    { id: "gate_e", name: "East Gate", zone: "east", open: true, lat: 40.8128, lng: -74.0710 },
-    { id: "gate_s", name: "South Gate", zone: "south", open: true, lat: 40.8110, lng: -74.0735 },
-    { id: "gate_w", name: "West Gate", zone: "west", open: true, lat: 40.8128, lng: -74.0760 },
-    { id: "gate_vip", name: "VIP Gate", zone: "east", open: true, lat: 40.8132, lng: -74.0705 },
+    { id: "gate_n", name: "North Gate", zone: "north", open: true, lat: 40.8160, lng: -74.0740 },
+    { id: "gate_e", name: "East Gate", zone: "east", open: true, lat: 40.8128, lng: -74.0685 },
+    { id: "gate_s", name: "South Gate", zone: "south", open: true, lat: 40.8090, lng: -74.0735 },
+    { id: "gate_w", name: "West Gate", zone: "west", open: true, lat: 40.8128, lng: -74.0785 },
+    { id: "gate_vip", name: "VIP Gate", zone: "east", open: true, lat: 40.8135, lng: -74.0695 },
   ],
 
   amenities: [
