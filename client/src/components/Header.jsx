@@ -1,6 +1,8 @@
-import React, { memo } from "react";
+import { memo } from "react";
 
-function Header() {
+// The status pill reflects actual fetch health reported by App — it doesn't
+// claim "live" unconditionally while requests are failing.
+function Header({ liveOk = true }) {
   return (
     <header className="header">
       <div className="header-logo">
@@ -11,9 +13,9 @@ function Header() {
         </svg>
         StadiumPilot
       </div>
-      <div className="header-status">
-        <span className="status-dot" aria-hidden="true"></span>
-        Live Data Active
+      <div className="header-status" role="status">
+        <span className={`status-dot ${liveOk ? "" : "status-dot--warn"}`} aria-hidden="true"></span>
+        {liveOk ? "Live Data Active" : "Reconnecting…"}
       </div>
     </header>
   );

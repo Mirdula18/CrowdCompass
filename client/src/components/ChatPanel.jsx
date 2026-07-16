@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, memo } from "react";
+import { useState, useRef, useEffect, memo } from "react";
 
 const SAMPLE_QUERIES = [
   "Where is the nearest restroom?",

@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import { memo } from "react";
 
 const DIETARY_OPTIONS = [
   { id: "vegetarian", label: "Vegetarian" },

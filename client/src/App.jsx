@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Header from "./components/Header.jsx";
 import StadiumMap from "./components/StadiumMap.jsx";
 import ChatPanel from "./components/ChatPanel.jsx";
@@ -34,13 +34,19 @@ export default function App() {
   const [activeRoute, setActiveRoute] = useState(null);
   const [reasoning, setReasoning] = useState(null);
   const [error, setError] = useState(null);
+  const [liveOk, setLiveOk] = useState(true);
 
   // The layout never changes, so it's fetched once (retried on later ticks if
   // the first attempt failed); only the live state is polled. Skipping the
   // setLive call when the timestamp hasn't advanced keeps the object identity
   // stable, so the memoized map doesn't re-render for a no-op poll.
   const layoutRef = useRef(null);
+  const inFlightRef = useRef(false);
   const refreshData = useCallback(async () => {
+    // Never stack requests: if a slow response outlives the poll interval,
+    // skip this tick rather than piling a second request on top of it.
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     try {
       if (!layoutRef.current) {
         const res = await fetch(`${API_BASE}/stadium-data`);
@@ -55,8 +61,12 @@ export default function App() {
         const data = await res.json();
         setLive((prev) => (prev && prev.timestamp === data.timestamp ? prev : data));
       }
+      setLiveOk(true);
     } catch (err) {
       console.error("Stadium data fetch error:", err);
+      setLiveOk(false);
+    } finally {
+      inFlightRef.current = false;
     }
   }, []);
 
@@ -127,7 +137,7 @@ export default function App() {
     <>
       <a href="#chat-input" className="skip-link">Skip to chat</a>
       <div className="app">
-        <Header />
+        <Header liveOk={liveOk} />
         <main className="main-layout">
           <div className="map-area" role="region" aria-label="Stadium map">
             <StadiumMap

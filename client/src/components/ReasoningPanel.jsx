@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import { Fragment, memo } from "react";
 
 function ReasoningPanel({ reasoning }) {
   if (!reasoning) return null;
@@ -25,10 +25,10 @@ function ReasoningPanel({ reasoning }) {
       {route && route.length > 0 && (
         <div className="reasoning-route">
           {route.map((step, i) => (
-            <React.Fragment key={i}>
+            <Fragment key={`${step}-${i}`}>
               {i > 0 && <span className="route-arrow">→</span>}
               <span className="route-step">{step}</span>
-            </React.Fragment>
+            </Fragment>
           ))}
         </div>
       )}

@@ -106,6 +106,10 @@
   animation: pulse 2s infinite;
 }
 
+.status-dot--warn {
+  background: var(--color-caution);
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
@@ -513,6 +517,31 @@
 @keyframes location-pulse {
   0%, 100% { box-shadow: 0 0 0 2px #1a73e8, 0 2px 8px rgba(0,0,0,0.4); }
   50% { box-shadow: 0 0 0 6px rgba(26, 115, 232, 0.3), 0 2px 8px rgba(0,0,0,0.4); }
+}
+
+/* === Error boundary fallback === */
+.error-boundary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100vh;
+  text-align: center;
+  padding: 24px;
+  color: var(--color-text);
+}
+
+.error-boundary button {
+  margin-top: 8px;
+  padding: 10px 20px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 /* === Responsive === */

@@ -5,7 +5,6 @@ import { stadiumLayout, gatesByName, amenitiesByName, sectionsByName } from "./s
 import { startLiveDataGenerator, getLiveData, buildStadiumStatePrompt } from "./live-data.js";
 
 const app = express();
-const PORT = process.env.PORT || 3001;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = "gemini-3.1-flash-lite";
 
@@ -68,7 +67,9 @@ Live stadium state:
 }
 
 async function callGemini(userPrompt) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+  // Key goes in a header, not the URL — query strings end up in proxy/server
+  // logs and error traces; headers don't.
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
   const body = {
     system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
     contents: [{ role: "user", parts: [{ text: userPrompt }] }],
@@ -83,7 +84,7 @@ async function callGemini(userPrompt) {
     try {
       const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
         body: JSON.stringify(body),
       });
 
@@ -159,8 +160,10 @@ app.post("/api/chat", async (req, res) => {
 
     res.json(parsed);
   } catch (error) {
-    console.error("Chat error:", error.message);
-    res.status(500).json({ error: "Failed to process request", detail: error.message });
+    // Full detail goes to the server log only — raw upstream error text is an
+    // internal matter, not something to echo back to arbitrary clients.
+    console.error("Chat error:", error);
+    res.status(502).json({ error: "The assistant is temporarily unavailable. Please try again." });
   }
 });
 
@@ -202,12 +205,15 @@ export function resolveRouteCoordinates(route) {
 
 // Full payload: static layout + current live state. Clients need this once, on load.
 app.get("/api/stadium-data", (req, res) => {
+  // Contains live state, so no intermediary may serve a stale copy.
+  res.set("Cache-Control", "no-store");
   res.json({ layout: stadiumLayout, live: getLiveData() });
 });
 
 // Light payload for polling: just the state that actually changes between ticks
 // (gate status + crowd density, ~300 bytes vs ~5kb for the full layout).
 app.get("/api/live-data", (req, res) => {
+  res.set("Cache-Control", "no-store");
   res.json(getLiveData());
 });
 

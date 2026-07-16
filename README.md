@@ -1,5 +1,7 @@
 # StadiumPilot
 
+[![CI](https://github.com/Mirdula18/CrowdCompass/actions/workflows/ci.yml/badge.svg)](https://github.com/Mirdula18/CrowdCompass/actions/workflows/ci.yml)
+
 AI concierge for stadium fans — built for the "Smart Stadiums and Tournament Operations"
 GenAI hackathon challenge (2026 FIFA World Cup context).
 
@@ -44,14 +46,20 @@ npm run dev
 
 ## How to test
 ```bash
-# Unit tests (pure logic, no API key needed, ~0.5s)
+# Lint (ESLint flat config, zero warnings expected)
+npm run lint
+
+# Unit + HTTP integration tests (no API key needed, ~1s)
 npm test
 
 # Live edge-case suite (needs a running server with a real GEMINI_API_KEY)
 npm run dev            # in one terminal
 npm run test:edge-cases  # in another
 ```
-See `tests/TESTING.md` for what each layer covers and the last recorded results.
+Lint, tests, and the client build also run on every push via GitHub Actions
+(`.github/workflows/ci.yml`). See `tests/TESTING.md` for what each test layer
+covers and the last recorded results. Requires Node 18+ (the server uses the
+built-in `fetch`).
 
 ## Live demo
 [https://stadiumpilot-vzqn.onrender.com](https://stadiumpilot-vzqn.onrender.com)
