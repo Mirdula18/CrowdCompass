@@ -38,25 +38,9 @@ function ChatPanel({ messages, onSend, loading, error }) {
           <div className="chat-empty">
             <h3>Welcome to StadiumPilot</h3>
             <p>Ask me anything about navigating the stadium — directions, food, accessibility, or safety.</p>
-            <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 6, width: "100%", maxWidth: 280 }}>
+            <div className="sample-queries">
               {SAMPLE_QUERIES.map((q, i) => (
-                <button
-                  key={i}
-                  onClick={() => handleSampleClick(q)}
-                  style={{
-                    padding: "8px 12px",
-                    border: "1px solid #dadce0",
-                    borderRadius: 8,
-                    background: "white",
-                    cursor: "pointer",
-                    fontSize: 12,
-                    textAlign: "left",
-                    color: "#5f6368",
-                    transition: "border-color 0.15s",
-                  }}
-                  onMouseEnter={(e) => (e.target.style.borderColor = "#1a73e8")}
-                  onMouseLeave={(e) => (e.target.style.borderColor = "#dadce0")}
-                >
+                <button key={i} className="sample-query-btn" onClick={() => handleSampleClick(q)}>
                   {q}
                 </button>
               ))}
@@ -64,7 +48,7 @@ function ChatPanel({ messages, onSend, loading, error }) {
           </div>
         ) : (
           messages.map((msg, i) => (
-            <div key={i} className={`chat-msg ${msg.role}`}>
+            <div key={i} className={`chat-msg ${msg.role}`} lang={msg.language_detected || undefined}>
               {msg.content}
               {msg.language_detected && msg.language_detected !== "en" && (
                 <span className="lang-tag">Detected: {msg.language_detected}</span>
@@ -73,7 +57,7 @@ function ChatPanel({ messages, onSend, loading, error }) {
           ))
         )}
         {loading && (
-          <div className="chat-msg assistant" style={{ opacity: 0.6 }}>
+          <div className="chat-msg assistant chat-msg-loading">
             Thinking...
           </div>
         )}

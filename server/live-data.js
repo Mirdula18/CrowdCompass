@@ -8,7 +8,7 @@ function randomCrowdLevel() {
   return crowdLevels[Math.floor(Math.random() * crowdLevels.length)];
 }
 
-function generateCrowdDensity() {
+export function generateCrowdDensity() {
   const density = {};
   for (const section of stadiumLayout.sections) {
     density[section.id] = randomCrowdLevel();
@@ -16,7 +16,7 @@ function generateCrowdDensity() {
   return density;
 }
 
-function generateZoneCrowdDensity() {
+export function generateZoneCrowdDensity() {
   const density = {};
   const zones = ["north", "east", "south", "west"];
   for (const zone of zones) {
@@ -25,7 +25,7 @@ function generateZoneCrowdDensity() {
   return density;
 }
 
-function generateGateStatus() {
+export function generateGateStatus() {
   const status = {};
   for (const gate of stadiumLayout.gates) {
     // 90% chance gate stays in current state, 10% chance it toggles (but never close all)
@@ -60,6 +60,10 @@ export function startLiveDataGenerator(intervalMs = 5000) {
       zoneCrowdDensity: generateZoneCrowdDensity(),
     };
   }, intervalMs);
+  // Don't let this timer hold the process open on its own — app.listen()'s
+  // socket already does that for a real server. Without this, importing
+  // app.js (e.g. in tests) hangs the process forever after tests complete.
+  updateInterval.unref();
 }
 
 export function stopLiveDataGenerator() {
@@ -72,6 +76,24 @@ export function stopLiveDataGenerator() {
 export function getLiveData() {
   return { ...liveData };
 }
+
+// Amenities and medical points never change at runtime — only gate status and
+// crowd density do. Build these once at module load instead of re-mapping/
+// re-stringifying the same static arrays on every single /api/chat request.
+const amenitiesStr = JSON.stringify(
+  stadiumLayout.amenities.map((a) => ({
+    type: a.type,
+    name: a.name,
+    location: a.zone,
+    tags: a.tags,
+    wheelchair_accessible: a.wheelchair_accessible,
+  }))
+);
+
+const medicalPointsStr = stadiumLayout.amenities
+  .filter((a) => a.type === "first_aid" || a.type === "security")
+  .map((a) => `${a.name} (${a.zone})`)
+  .join(", ");
 
 // Build the live stadium state string for the AI prompt
 export function buildStadiumStatePrompt() {
@@ -89,23 +111,11 @@ export function buildStadiumStatePrompt() {
     )
   );
 
-  const amenitiesList = stadiumLayout.amenities.map((a) => ({
-    type: a.type,
-    name: a.name,
-    location: a.zone,
-    tags: a.tags,
-    wheelchair_accessible: a.wheelchair_accessible,
-  }));
-
-  const medicalPoints = stadiumLayout.amenities
-    .filter((a) => a.type === "first_aid" || a.type === "security")
-    .map((a) => `${a.name} (${a.zone})`);
-
   return {
     gateStatus: gateStatusStr,
     crowdDensity: crowdStr,
-    amenities: JSON.stringify(amenitiesList),
-    medicalPoints: medicalPoints.join(", "),
+    amenities: amenitiesStr,
+    medicalPoints: medicalPointsStr,
     raw: data,
   };
 }

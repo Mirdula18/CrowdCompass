@@ -101,72 +101,75 @@ export default function App() {
   );
 
   return (
-    <div className="app">
-      <Header />
-      <main className="main-layout">
-        <div className="map-area" role="region" aria-label="Stadium map">
-          <StadiumMap
-            stadiumData={stadiumData}
-            activeRoute={activeRoute}
-            profile={profile}
-          />
-        </div>
-        <div className="sidebar">
-          <div className="profile-section">
-            <label className="field-label" htmlFor="location-select">Your Location</label>
-            <select
-              id="location-select"
-              className="location-select"
-              value={profile.location}
-              onChange={(e) =>
-                setProfile((p) => ({ ...p, location: e.target.value }))
-              }
-            >
-              {stadiumData?.layout?.sections?.map((s) => (
-                <option key={s.id} value={s.name}>
-                  {s.name} ({s.zone} zone)
-                </option>
-              ))}
-              {stadiumData?.layout?.gates?.map((g) => (
-                <option key={g.id} value={g.name}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
-
-            <label className="field-label" htmlFor="accessibility-select">Accessibility</label>
-            <select
-              id="accessibility-select"
-              className="location-select"
-              value={profile.accessibility}
-              onChange={(e) =>
-                setProfile((p) => ({ ...p, accessibility: e.target.value }))
-              }
-            >
-              <option value="none">None</option>
-              <option value="wheelchair">Wheelchair</option>
-              <option value="visual_impairment">Visual Impairment</option>
-              <option value="hearing_impairment">Hearing Impairment</option>
-            </select>
-
-            <DietarySelector
-              selected={profile.dietary}
-              onChange={(dietary) =>
-                setProfile((p) => ({ ...p, dietary }))
-              }
+    <>
+      <a href="#chat-input" className="skip-link">Skip to chat</a>
+      <div className="app">
+        <Header />
+        <main className="main-layout">
+          <div className="map-area" role="region" aria-label="Stadium map">
+            <StadiumMap
+              stadiumData={stadiumData}
+              activeRoute={activeRoute}
+              profile={profile}
             />
           </div>
+          <div className="sidebar">
+            <div className="profile-section">
+              <label className="field-label" htmlFor="location-select">Your Location</label>
+              <select
+                id="location-select"
+                className="location-select"
+                value={profile.location}
+                onChange={(e) =>
+                  setProfile((p) => ({ ...p, location: e.target.value }))
+                }
+              >
+                {stadiumData?.layout?.sections?.map((s) => (
+                  <option key={s.id} value={s.name}>
+                    {s.name} ({s.zone} zone)
+                  </option>
+                ))}
+                {stadiumData?.layout?.gates?.map((g) => (
+                  <option key={g.id} value={g.name}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
 
-          <ChatPanel
-            messages={messages}
-            onSend={sendMessage}
-            loading={loading}
-            error={error}
-          />
+              <label className="field-label" htmlFor="accessibility-select">Accessibility</label>
+              <select
+                id="accessibility-select"
+                className="location-select"
+                value={profile.accessibility}
+                onChange={(e) =>
+                  setProfile((p) => ({ ...p, accessibility: e.target.value }))
+                }
+              >
+                <option value="none">None</option>
+                <option value="wheelchair">Wheelchair</option>
+                <option value="visual_impairment">Visual Impairment</option>
+                <option value="hearing_impairment">Hearing Impairment</option>
+              </select>
 
-          {reasoning && <ReasoningPanel reasoning={reasoning} />}
-        </div>
-      </main>
-    </div>
+              <DietarySelector
+                selected={profile.dietary}
+                onChange={(dietary) =>
+                  setProfile((p) => ({ ...p, dietary }))
+                }
+              />
+            </div>
+
+            <ChatPanel
+              messages={messages}
+              onSend={sendMessage}
+              loading={loading}
+              error={error}
+            />
+
+            {reasoning && <ReasoningPanel reasoning={reasoning} />}
+          </div>
+        </main>
+      </div>
+    </>
   );
 }

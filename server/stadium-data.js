@@ -93,3 +93,11 @@ export function getNearestEmergencyPoint(zone) {
 export function getGateByZone(zone) {
   return stadiumLayout.gates.find((g) => g.zone === zone && g.open);
 }
+
+// Exact-name lookups (O(1)) for route waypoint resolution. Most AI-generated
+// route labels match a real name exactly (e.g. "Section 101", "Burger Shack");
+// callers should try these first and only fall back to a substring scan for
+// fuzzier labels (e.g. "North Concourse").
+export const gatesByName = new Map(stadiumLayout.gates.map((g) => [g.name.toLowerCase(), g]));
+export const amenitiesByName = new Map(stadiumLayout.amenities.map((a) => [a.name.toLowerCase(), a]));
+export const sectionsByName = new Map(stadiumLayout.sections.map((s) => [s.name.toLowerCase(), s]));

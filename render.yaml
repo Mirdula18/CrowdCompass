@@ -1,7 +1,10 @@
 services:
   # Backend — Express API that proxies to Gemini. GEMINI_API_KEY must be set
   # manually in the Render dashboard (Environment tab) as a secret; it is not
-  # committed here.
+  # committed here. FRONTEND_URL below is the real assigned URL of the
+  # "stadiumpilot" static site (its plain name was taken, so Render suffixed
+  # it) — keep this in sync with reality, since a Blueprint re-sync will
+  # silently overwrite any dashboard-only edit back to whatever's in this file.
   - name: stadiumpilot-api
     type: web
     runtime: node
@@ -13,13 +16,10 @@ services:
       - key: GEMINI_API_KEY
         sync: false
       - key: FRONTEND_URL
-        value: https://stadiumpilot.onrender.com
+        value: https://stadiumpilot-vzqn.onrender.com
 
   # Frontend — static React build. VITE_API_BASE_URL points at the backend
-  # service above; Render assigns https://<name>.onrender.com deterministically
-  # for a fresh, unused service name — if "stadiumpilot-api" is already taken,
-  # update this value (and FRONTEND_URL above) to match the real assigned URL
-  # and redeploy both services.
+  # service's actual assigned URL above.
   - name: stadiumpilot
     type: web
     runtime: static

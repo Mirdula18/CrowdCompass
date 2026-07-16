@@ -9,6 +9,17 @@ const CROWD_COLORS = {
   very_high: "#9c27b0",
 };
 
+// Degree-offset per section level/index, used to jitter section markers apart
+// within a zone so labels don't collide. Must stay comfortably larger than
+// GPS-noise scale (~1e-5 deg) — these were previously 0.00008/0.00012, too
+// small to visually separate labels at any usable zoom (see task.md Phase 4).
+const SECTION_LEVEL_OFFSET_DEG = 0.0004;
+const SECTION_INDEX_OFFSET_DEG = 0.0006;
+
+const MAP_DEFAULT_ZOOM = 18;
+const MAP_MIN_ZOOM = 17;
+const MAP_MAX_ZOOM = 19;
+
 function LabelMarker({ position, text, offset = [0, -14] }) {
   return (
     <Marker
@@ -49,8 +60,8 @@ function StadiumMap({ stadiumData, activeRoute, profile }) {
       const zoneDir = { north: [1, 0], south: [-1, 0], east: [0, -1], west: [0, 1] };
       const dir = zoneDir[zone] || [0, 0];
       secs.forEach((sec, idx) => {
-        const levelOffset = (sec.level - 1) * 0.0004;
-        const idxOffset = (idx - (secs.length - 1) / 2) * 0.0006;
+        const levelOffset = (sec.level - 1) * SECTION_LEVEL_OFFSET_DEG;
+        const idxOffset = (idx - (secs.length - 1) / 2) * SECTION_INDEX_OFFSET_DEG;
         const lat = zoneCoords.lat + dir[0] * levelOffset + dir[1] * idxOffset;
         const lng = zoneCoords.lng + dir[1] * levelOffset + dir[0] * idxOffset;
         result.push({ ...sec, position: [lat, lng] });
@@ -97,9 +108,9 @@ function StadiumMap({ stadiumData, activeRoute, profile }) {
     <div className="stadium-map-container">
       <MapContainer
         center={center}
-        zoom={18}
-        minZoom={17}
-        maxZoom={19}
+        zoom={MAP_DEFAULT_ZOOM}
+        minZoom={MAP_MIN_ZOOM}
+        maxZoom={MAP_MAX_ZOOM}
         style={{ width: "100%", height: "100%" }}
         zoomControl={true}
       >

@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import { stadiumLayout } from "./stadium-data.js";
+import { stadiumLayout, gatesByName, amenitiesByName, sectionsByName } from "./stadium-data.js";
 import { startLiveDataGenerator, getLiveData, buildStadiumStatePrompt } from "./live-data.js";
 
 const app = express();
@@ -49,7 +49,7 @@ Always respond ONLY in this JSON format, no extra text:
   "clarifying_question": "string or null"
 }`;
 
-function buildUserPrompt(message, profile) {
+export function buildUserPrompt(message, profile) {
   const stadiumState = buildStadiumStatePrompt();
   return `Fan message: "${message}"
 
@@ -123,6 +123,10 @@ app.post("/api/chat", async (req, res) => {
       return res.status(400).json({ error: "Message is required" });
     }
 
+    if (message.length > 1000) {
+      return res.status(400).json({ error: "Message is too long (max 1000 characters)" });
+    }
+
     if (!GEMINI_API_KEY) {
       return res.status(500).json({ error: "API key not configured" });
     }
@@ -146,7 +150,7 @@ app.post("/api/chat", async (req, res) => {
     }
 
     if (parsed.route && parsed.route.length > 0) {
-      parsed.route_coordinates = resolveRouteCoordinates(parsed.route, profile);
+      parsed.route_coordinates = resolveRouteCoordinates(parsed.route);
     } else {
       parsed.route_coordinates = [];
     }
@@ -158,24 +162,24 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-function resolveRouteCoordinates(route, profile) {
+export function resolveRouteCoordinates(route) {
   const coordinates = [];
   for (const waypoint of route) {
     const lower = waypoint.toLowerCase();
 
-    const gate = stadiumLayout.gates.find(
-      (g) => lower.includes(g.name.toLowerCase()) || lower.includes(g.zone)
-    );
+    // Exact-name match first (O(1)) — covers the common case where the AI
+    // echoes a real name verbatim. Falls back to a substring scan for fuzzier
+    // labels the model might generate (e.g. "North Concourse").
+    const gate = gatesByName.get(lower)
+      || stadiumLayout.gates.find((g) => lower.includes(g.name.toLowerCase()) || lower.includes(g.zone));
     if (gate) { coordinates.push({ label: waypoint, lat: gate.lat, lng: gate.lng }); continue; }
 
-    const amenity = stadiumLayout.amenities.find(
-      (a) => lower.includes(a.name.toLowerCase()) || lower.includes(a.type)
-    );
+    const amenity = amenitiesByName.get(lower)
+      || stadiumLayout.amenities.find((a) => lower.includes(a.name.toLowerCase()) || lower.includes(a.type));
     if (amenity) { coordinates.push({ label: waypoint, lat: amenity.lat, lng: amenity.lng }); continue; }
 
-    const section = stadiumLayout.sections.find(
-      (s) => lower.includes(s.name.toLowerCase()) || lower.includes(s.id)
-    );
+    const section = sectionsByName.get(lower)
+      || stadiumLayout.sections.find((s) => lower.includes(s.name.toLowerCase()) || lower.includes(s.id));
     if (section) {
       const z = stadiumLayout.zones[section.zone];
       coordinates.push({ label: waypoint, lat: z.lat, lng: z.lng });

@@ -1,4 +1,33 @@
-# StadiumPilot — Edge Case Test Results
+# StadiumPilot — Testing
+
+Two layers, deliberately kept separate:
+
+1. **Unit tests** (`server/tests/*.test.js`, run via `npm test`) — pure logic only:
+   route-waypoint resolution, prompt construction, stadium data integrity, and the
+   live-data generators' statistical invariants (e.g. "never closes all gates").
+   No network calls, no API key required, runs in under a second — this is the
+   layer a CI pipeline or automated evaluator can actually execute.
+2. **Live edge-case tests** (`tests/test-edge-cases.js`, run via `npm run test:edge-cases`
+   from the repo root) — real HTTP calls against a running server backed by a real
+   Gemini API key. These exercise the six required edge cases from
+   `PROMPT_DESIGN.md` §5 end-to-end against the actual model, which unit tests
+   can't do (an LLM response can't be unit-tested without either mocking the
+   model — defeating the point of verifying real behavior — or hitting it live).
+
+## Layer 1 — Unit tests
+
+Run with `npm test` (from repo root or `server/`). Uses Node's built-in test
+runner (`node --test`), so no test framework dependency was added.
+
+| File | Covers |
+|---|---|
+| `server/tests/stadium-data.test.js` | Data integrity (every section/gate references a real zone), a regression test for the gate/zone-center overlap bug fixed in the UI polish pass, `getAmenitiesByType`/`getNearestEmergencyPoint`/`getGateByZone`, name-lookup maps |
+| `server/tests/live-data.test.js` | Crowd-level generators return valid values, gate-status generator never closes all gates (run 200x to exercise the random branch), `buildStadiumStatePrompt` never invents an amenity |
+| `server/tests/app.test.js` | `resolveRouteCoordinates` (exact match, fuzzy fallback, multi-waypoint, empty route), `buildUserPrompt` (message/profile interpolation, defaults, live-state inclusion) |
+
+Last run: 33/33 passing, ~0.5s.
+
+## Layer 2 — Live edge-case tests
 
 **Date:** 2026-07-15
 **Model:** gemini-3.1-flash-lite

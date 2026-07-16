@@ -22,7 +22,7 @@ that (explainable AI / XAI).
 | `PROMPT_DESIGN.md` | The AI agent's system prompt, JSON output contract, edge-case behavior |
 | `AGENTS.md` | Instructions auto-read by OpenCode |
 | `CLAUDE.md` | Instructions auto-read by Claude Code |
-| `tests/TESTING.md` | Edge case test results |
+| `tests/TESTING.md` | Unit test coverage + live edge-case test results |
 
 ## How to run
 ```bash
@@ -40,8 +40,21 @@ npm run dev
 - **Server:** http://localhost:3001
 - **Client:** http://localhost:5173 (proxies /api to server)
 
+## How to test
+```bash
+# Unit tests (pure logic, no API key needed, ~0.5s)
+npm test
+
+# Live edge-case suite (needs a running server with a real GEMINI_API_KEY)
+npm run dev            # in one terminal
+npm run test:edge-cases  # in another
+```
+See `tests/TESTING.md` for what each layer covers and the last recorded results.
+
 ## Live demo
-_(pending deployment)_
+[https://stadiumpilot-vzqn.onrender.com](https://stadiumpilot-vzqn.onrender.com)
+(backend: `https://stadiumpilot-api.onrender.com` — Render free tier, first request after
+idle may take ~30s to wake the backend)
 
 ## Tech stack
 | Layer | Technology |

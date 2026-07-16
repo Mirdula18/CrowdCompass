@@ -9,6 +9,8 @@
     "dev:client": "cd client && npm run dev",
     "build": "cd client && npm run build",
     "start": "cd server && npm start",
+    "test": "cd server && npm test",
+    "test:edge-cases": "node tests/test-edge-cases.js",
     "install:all": "cd server && npm install && cd ../client && npm install"
   },
   "dependencies": {
