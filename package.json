@@ -11,12 +11,7 @@
     "start": "cd server && npm start",
     "test": "cd server && npm test",
     "test:edge-cases": "node tests/test-edge-cases.js",
-    "install:all": "cd server && npm install && cd ../client && npm install"
-  },
-  "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2"
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

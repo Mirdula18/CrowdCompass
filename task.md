@@ -69,7 +69,7 @@
 Live: https://stadiumpilot-vzqn.onrender.com
 
 ## Phase 7 — Submission — **Claude Code** (+ you)
-- [ ] `README.md` filled in completely (stack, how to run, live link, screenshot)
+- [x] `README.md` filled in completely (stack, how to run, live link, screenshot)
 - [ ] LinkedIn post: tools used, prompt design decisions, AI vs. manual coding split
 - [ ] Final rubric self-check (below)
 - [ ] Submit — only your last submission counts, so don't submit until Phase 5 is solid

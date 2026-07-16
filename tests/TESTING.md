@@ -21,11 +21,12 @@ runner (`node --test`), so no test framework dependency was added.
 
 | File | Covers |
 |---|---|
-| `server/tests/stadium-data.test.js` | Data integrity (every section/gate references a real zone), a regression test for the gate/zone-center overlap bug fixed in the UI polish pass, `getAmenitiesByType`/`getNearestEmergencyPoint`/`getGateByZone`, name-lookup maps |
-| `server/tests/live-data.test.js` | Crowd-level generators return valid values, gate-status generator never closes all gates (run 200x to exercise the random branch), `buildStadiumStatePrompt` never invents an amenity |
+| `server/tests/stadium-data.test.js` | Data integrity (every section/gate/amenity references a real zone, unique ids, medical/security points exist), a regression test for the gate/zone-center overlap bug fixed in the UI polish pass, name-lookup maps |
+| `server/tests/live-data.test.js` | Stateful generator invariants over hundreds of ticks: gates keep their state ~90% per tick and never drop below 3 open; crowd levels drift at most one step per tick (no low → very_high teleporting); `buildStadiumStatePrompt` never invents an amenity |
 | `server/tests/app.test.js` | `resolveRouteCoordinates` (exact match, fuzzy fallback, multi-waypoint, empty route), `buildUserPrompt` (message/profile interpolation, defaults, live-state inclusion) |
+| `server/tests/api.test.js` | Real HTTP against the Express app on an ephemeral port: `/api/health`, `/api/stadium-data` (layout+live shape), `/api/live-data` (light polling payload, verified <25% of the full payload size), and `/api/chat` input validation (missing/empty/non-string/too-long message → 400, oversized body → 413) |
 
-Last run: 33/33 passing, ~0.5s.
+Last run: 44/44 passing, ~1s.
 
 ## Layer 2 — Live edge-case tests
 

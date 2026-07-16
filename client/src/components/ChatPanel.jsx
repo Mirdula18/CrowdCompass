@@ -47,8 +47,8 @@ function ChatPanel({ messages, onSend, loading, error }) {
             </div>
           </div>
         ) : (
-          messages.map((msg, i) => (
-            <div key={i} className={`chat-msg ${msg.role}`} lang={msg.language_detected || undefined}>
+          messages.map((msg) => (
+            <div key={msg.id} className={`chat-msg ${msg.role}`} lang={msg.language_detected || undefined}>
               {msg.content}
               {msg.language_detected && msg.language_detected !== "en" && (
                 <span className="lang-tag">Detected: {msg.language_detected}</span>
@@ -63,6 +63,12 @@ function ChatPanel({ messages, onSend, loading, error }) {
         )}
         <div ref={messagesEndRef} />
       </div>
+
+      {error && (
+        <div className="chat-error" role="alert">
+          {error}
+        </div>
+      )}
 
       <form className="chat-input-area" onSubmit={handleSubmit}>
         <label htmlFor="chat-input" className="sr-only">

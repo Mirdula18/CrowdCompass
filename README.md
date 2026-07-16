@@ -13,7 +13,9 @@ that (explainable AI / XAI).
 - **Persona:** Fan
 - **Verticals:** Navigation + Multilingual Assistance + Accessibility
 - **AI provider:** Google Gemini API (free tier) — see `PROMPT_DESIGN.md` for full prompt design
-- **Built with:** OpenCode (Phases 1-6) — see `task.md`
+- **Built with:** OpenCode (Phase 1 foundation) + Claude Code (Phases 2-7) — see `task.md`
+
+![StadiumPilot — wheelchair-accessible route with AI reasoning panel](docs/screenshot.png)
 
 ## Project docs
 | File | Purpose |
@@ -26,8 +28,8 @@ that (explainable AI / XAI).
 
 ## How to run
 ```bash
-# Install dependencies
-cd server && npm install && cd ../client && npm install && cd ..
+# Install dependencies (root + server + client)
+npm run install:all
 
 # Set up API key
 cp .env.example server/.env
@@ -62,8 +64,8 @@ idle may take ~30s to wake the backend)
 | Frontend | React 19 + Vite 6, Leaflet (react-leaflet) for maps |
 | Backend | Node.js + Express, direct Gemini REST API calls (no SDK) |
 | AI | Google Gemini API (`gemini-3.1-flash-lite`), structured JSON output |
-| Deployment | Render — Web Service (backend) + Static Site (frontend). `vercel.json`/`netlify.toml` also present as alternatives. |
-| Data | Synthetic live stadium data (crowd density, gate status update every 5s) |
+| Deployment | Render — Web Service (backend) + Static Site (frontend), via `render.yaml` Blueprint |
+| Data | Synthetic live stadium data — gate status and crowd density evolve statefully every 5s (gates mostly persist, crowds drift one level at a time). Clients fetch the static layout once and poll only the ~430-byte live payload. |
 
 ## Deploy to Render
 
@@ -71,8 +73,8 @@ The repo includes a `render.yaml` Blueprint that provisions both services in one
 pass: `stadiumpilot-api` (Node Web Service, root dir `server`) and `stadiumpilot`
 (Static Site, root dir `client`). Frontend and backend are separate origins on
 Render, so the frontend is built with `VITE_API_BASE_URL` pointing at the
-backend's URL instead of relying on same-origin `/api` rewrites (that's the
-Vercel/Netlify approach — see `vercel.json`/`netlify.toml`).
+backend's URL (locally, the Vite dev server proxies `/api` to the backend
+instead — no env var needed).
 
 1. Push this repo to GitHub (Render deploys from a connected repo).
 2. In the Render dashboard: **New > Blueprint**, select the repo. Render reads

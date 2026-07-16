@@ -65,6 +65,13 @@ Always respond ONLY in this JSON format, no extra text:
 }
 ```
 
+**Server-side augmentation:** before returning the model's JSON to the client, the
+backend adds one derived field, `route_coordinates` — each `route` label resolved to
+`{label, lat, lng}` against the stadium layout (exact-name lookup first, substring
+fallback) so the frontend can draw the route on the map. The model itself never
+produces coordinates; this keeps the LLM contract stable and the geometry grounded
+in real layout data the model can't hallucinate.
+
 ## 3. User prompt template (per query)
 
 ```

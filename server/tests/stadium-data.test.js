@@ -2,9 +2,6 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import {
   stadiumLayout,
-  getAmenitiesByType,
-  getNearestEmergencyPoint,
-  getGateByZone,
   gatesByName,
   amenitiesByName,
   sectionsByName,
@@ -25,6 +22,15 @@ describe("stadium data integrity", () => {
       assert.ok(
         stadiumLayout.zones[gate.zone],
         `gate ${gate.id} references unknown zone "${gate.zone}"`
+      );
+    }
+  });
+
+  test("every amenity references a zone that actually exists", () => {
+    for (const amenity of stadiumLayout.amenities) {
+      assert.ok(
+        stadiumLayout.zones[amenity.zone],
+        `amenity ${amenity.id} references unknown zone "${amenity.zone}"`
       );
     }
   });
@@ -56,39 +62,20 @@ describe("stadium data integrity", () => {
       }
     }
   });
-});
 
-describe("getAmenitiesByType", () => {
-  test("returns only amenities of the requested type", () => {
-    const food = getAmenitiesByType("food");
-    assert.ok(food.length > 0);
-    assert.ok(food.every((a) => a.type === "food"));
+  test("at least one first_aid and one security point exist (emergency routing depends on them)", () => {
+    const types = new Set(stadiumLayout.amenities.map((a) => a.type));
+    assert.ok(types.has("first_aid"), "no first_aid amenity in stadium data");
+    assert.ok(types.has("security"), "no security amenity in stadium data");
   });
 
-  test("returns an empty array for a type with no matches", () => {
-    assert.deepEqual(getAmenitiesByType("nonexistent_type"), []);
-  });
-});
-
-describe("getNearestEmergencyPoint", () => {
-  test("returns a first_aid or security amenity", () => {
-    const point = getNearestEmergencyPoint("north");
-    assert.ok(point);
-    assert.ok(["first_aid", "security"].includes(point.type));
-  });
-
-  test("prefers a point in the requested zone when one exists", () => {
-    const point = getNearestEmergencyPoint("south");
-    assert.equal(point.zone, "south");
-  });
-});
-
-describe("getGateByZone", () => {
-  test("returns an open gate in the requested zone", () => {
-    const gate = getGateByZone("east");
-    assert.ok(gate);
-    assert.equal(gate.zone, "east");
-    assert.equal(gate.open, true);
+  test("all ids are unique across sections, gates, and amenities", () => {
+    const ids = [
+      ...stadiumLayout.sections.map((s) => s.id),
+      ...stadiumLayout.gates.map((g) => g.id),
+      ...stadiumLayout.amenities.map((a) => a.id),
+    ];
+    assert.equal(new Set(ids).size, ids.length, "duplicate id found in stadium layout");
   });
 });
 
@@ -103,5 +90,11 @@ describe("name lookup maps", () => {
 
   test("sectionsByName is keyed by lowercased section name", () => {
     assert.equal(sectionsByName.get("section 101")?.id, "sec_101");
+  });
+
+  test("lookup maps cover every entity exactly once", () => {
+    assert.equal(gatesByName.size, stadiumLayout.gates.length);
+    assert.equal(amenitiesByName.size, stadiumLayout.amenities.length);
+    assert.equal(sectionsByName.size, stadiumLayout.sections.length);
   });
 });

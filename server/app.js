@@ -13,7 +13,9 @@ const GEMINI_MODEL = "gemini-3.1-flash-lite";
 // Falls back to allowing all origins for local dev / same-origin deploys (Vercel/Netlify).
 const FRONTEND_URL = process.env.FRONTEND_URL;
 app.use(cors(FRONTEND_URL ? { origin: FRONTEND_URL } : {}));
-app.use(express.json({ limit: "1mb" }));
+// Requests are small (a chat message capped at 1000 chars + a fan profile);
+// 16kb leaves generous headroom while rejecting oversized payloads early.
+app.use(express.json({ limit: "16kb" }));
 
 if (!GEMINI_API_KEY) {
   console.error("WARNING: GEMINI_API_KEY is not set. AI features will not work.");
@@ -198,8 +200,15 @@ export function resolveRouteCoordinates(route) {
   return coordinates;
 }
 
+// Full payload: static layout + current live state. Clients need this once, on load.
 app.get("/api/stadium-data", (req, res) => {
   res.json({ layout: stadiumLayout, live: getLiveData() });
+});
+
+// Light payload for polling: just the state that actually changes between ticks
+// (gate status + crowd density, ~300 bytes vs ~5kb for the full layout).
+app.get("/api/live-data", (req, res) => {
+  res.json(getLiveData());
 });
 
 app.get("/api/health", (req, res) => {
@@ -216,5 +225,6 @@ process.on("uncaughtException", (err) => {
   console.error("Uncaught exception:", err);
 });
 
-// Export app for Vercel serverless and local dev
+// Exported (rather than listening here) so index.js can start the real server
+// and tests can mount the app on an ephemeral port.
 export default app;

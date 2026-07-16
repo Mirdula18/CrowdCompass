@@ -1,4 +1,6 @@
-// Stadium data model — gates, sections, amenities, accessibility, crowd density
+// Stadium data model — gates, sections, amenities, accessibility, zone geometry.
+// This is the static layout; live state (gate open/closed, crowd density) is
+// generated in live-data.js and keyed by the ids defined here.
 
 export const stadiumLayout = {
   name: "MetLife Stadium",
@@ -18,13 +20,14 @@ export const stadiumLayout = {
   ],
 
   // Gates sit on the outer perimeter, clear of the zone-center cluster where
-  // section/amenity markers are jittered — otherwise gate and section labels collide on the map.
+  // section/amenity markers are jittered — otherwise gate and section labels
+  // collide on the map. Open/closed state lives in live-data.js, not here.
   gates: [
-    { id: "gate_n", name: "North Gate", zone: "north", open: true, lat: 40.8160, lng: -74.0740 },
-    { id: "gate_e", name: "East Gate", zone: "east", open: true, lat: 40.8128, lng: -74.0685 },
-    { id: "gate_s", name: "South Gate", zone: "south", open: true, lat: 40.8090, lng: -74.0735 },
-    { id: "gate_w", name: "West Gate", zone: "west", open: true, lat: 40.8128, lng: -74.0785 },
-    { id: "gate_vip", name: "VIP Gate", zone: "east", open: true, lat: 40.8135, lng: -74.0695 },
+    { id: "gate_n", name: "North Gate", zone: "north", lat: 40.8160, lng: -74.0740 },
+    { id: "gate_e", name: "East Gate", zone: "east", lat: 40.8128, lng: -74.0685 },
+    { id: "gate_s", name: "South Gate", zone: "south", lat: 40.8090, lng: -74.0735 },
+    { id: "gate_w", name: "West Gate", zone: "west", lat: 40.8128, lng: -74.0785 },
+    { id: "gate_vip", name: "VIP Gate", zone: "east", lat: 40.8135, lng: -74.0695 },
   ],
 
   amenities: [
@@ -47,7 +50,7 @@ export const stadiumLayout = {
     { id: "am_17", type: "water", name: "Water Station South", zone: "south", tags: [], lat: 40.8114, lng: -74.0731, wheelchair_accessible: true },
   ],
 
-  // Zone centers for map rendering
+  // Zone centers for map rendering and route waypoint fallback
   zones: {
     north: { lat: 40.8140, lng: -74.0738 },
     east: { lat: 40.8128, lng: -74.0710 },
@@ -55,44 +58,7 @@ export const stadiumLayout = {
     west: { lat: 40.8128, lng: -74.0760 },
     center: { lat: 40.8125, lng: -74.0735 },
   },
-
-  // Waypoints for routing between zones
-  waypoints: {
-    "north_to_center": { lat: 40.8135, lng: -74.0738 },
-    "east_to_center": { lat: 40.8128, lng: -74.0720 },
-    "south_to_center": { lat: 40.8118, lng: -74.0735 },
-    "west_to_center": { lat: 40.8128, lng: -74.0750 },
-    "center": { lat: 40.8125, lng: -74.0735 },
-  },
 };
-
-// Zone labels for map
-export const zoneLabels = {
-  north: "North Zone",
-  east: "East Zone",
-  south: "South Zone",
-  west: "West Zone",
-};
-
-// Helper to get amenities by type
-export function getAmenitiesByType(type) {
-  return stadiumLayout.amenities.filter((a) => a.type === type);
-}
-
-// Helper to get nearest medical/security point
-export function getNearestEmergencyPoint(zone) {
-  const medical = stadiumLayout.amenities.filter(
-    (a) => a.type === "first_aid" || a.type === "security"
-  );
-  if (medical.length === 0) return null;
-  // Simple zone-based nearest
-  return medical.find((m) => m.zone === zone) || medical[0];
-}
-
-// Helper to get gate by zone
-export function getGateByZone(zone) {
-  return stadiumLayout.gates.find((g) => g.zone === zone && g.open);
-}
 
 // Exact-name lookups (O(1)) for route waypoint resolution. Most AI-generated
 // route labels match a real name exactly (e.g. "Section 101", "Burger Shack");

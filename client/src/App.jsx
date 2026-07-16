@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Header from "./components/Header.jsx";
 import StadiumMap from "./components/StadiumMap.jsx";
 import ChatPanel from "./components/ChatPanel.jsx";
@@ -6,13 +6,25 @@ import ReasoningPanel from "./components/ReasoningPanel.jsx";
 import DietarySelector from "./components/DietarySelector.jsx";
 import "./App.css";
 
-// Same-origin "/api" for local dev (Vite proxy) and single-origin deploys (Vercel/Netlify).
-// Set VITE_API_BASE_URL at build time when frontend and backend are separate origins (Render).
+// Same-origin "/api" for local dev (the Vite proxy forwards it to the server).
+// Set VITE_API_BASE_URL at build time when frontend and backend are separate
+// origins, as they are on Render.
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
+
+// Matches the server's live-data generator tick (5s). The static layout is
+// fetched once; only the small live payload (gate status + crowd density) is
+// polled at this cadence.
+const LIVE_POLL_INTERVAL_MS = 5000;
+
+let nextMessageId = 0;
+function makeMessage(role, content, extra = {}) {
+  return { id: nextMessageId++, role, content, timestamp: Date.now(), ...extra };
+}
 
 export default function App() {
   const [messages, setMessages] = useState([]);
-  const [stadiumData, setStadiumData] = useState(null);
+  const [layout, setLayout] = useState(null);
+  const [live, setLive] = useState(null);
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState({
     location: "Section 101",
@@ -23,31 +35,47 @@ export default function App() {
   const [reasoning, setReasoning] = useState(null);
   const [error, setError] = useState(null);
 
-  // Fetch stadium data on mount and periodically
-  const fetchStadiumData = useCallback(async () => {
+  // The layout never changes, so it's fetched once (retried on later ticks if
+  // the first attempt failed); only the live state is polled. Skipping the
+  // setLive call when the timestamp hasn't advanced keeps the object identity
+  // stable, so the memoized map doesn't re-render for a no-op poll.
+  const layoutRef = useRef(null);
+  const refreshData = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/stadium-data`);
-      if (!res.ok) throw new Error("Failed to fetch stadium data");
-      const data = await res.json();
-      setStadiumData(data);
+      if (!layoutRef.current) {
+        const res = await fetch(`${API_BASE}/stadium-data`);
+        if (!res.ok) throw new Error("Failed to fetch stadium data");
+        const data = await res.json();
+        layoutRef.current = data.layout;
+        setLayout(data.layout);
+        setLive(data.live);
+      } else {
+        const res = await fetch(`${API_BASE}/live-data`);
+        if (!res.ok) throw new Error("Failed to fetch live data");
+        const data = await res.json();
+        setLive((prev) => (prev && prev.timestamp === data.timestamp ? prev : data));
+      }
     } catch (err) {
       console.error("Stadium data fetch error:", err);
     }
   }, []);
 
   useEffect(() => {
-    fetchStadiumData();
-    const interval = setInterval(fetchStadiumData, 5000);
+    refreshData();
+    const interval = setInterval(() => {
+      // No point polling while the tab is hidden — the map isn't visible,
+      // and the next visible tick will catch up.
+      if (!document.hidden) refreshData();
+    }, LIVE_POLL_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [fetchStadiumData]);
+  }, [refreshData]);
 
   // Send a chat message
   const sendMessage = useCallback(
     async (text) => {
       if (!text.trim() || loading) return;
 
-      const userMsg = { role: "user", content: text, timestamp: Date.now() };
-      setMessages((prev) => [...prev, userMsg]);
+      setMessages((prev) => [...prev, makeMessage("user", text)]);
       setLoading(true);
       setError(null);
 
@@ -65,13 +93,10 @@ export default function App() {
 
         const data = await res.json();
 
-        const aiMsg = {
-          role: "assistant",
-          content: data.answer,
-          language_detected: data.language_detected,
-          timestamp: Date.now(),
-        };
-        setMessages((prev) => [...prev, aiMsg]);
+        setMessages((prev) => [
+          ...prev,
+          makeMessage("assistant", data.answer, { language_detected: data.language_detected }),
+        ]);
 
         if (data.route_coordinates && data.route_coordinates.length > 0) {
           setActiveRoute(data.route_coordinates);
@@ -87,12 +112,10 @@ export default function App() {
         });
       } catch (err) {
         setError(err.message);
-        const errMsg = {
-          role: "assistant",
-          content: "Sorry, I encountered an error. Please try again.",
-          timestamp: Date.now(),
-        };
-        setMessages((prev) => [...prev, errMsg]);
+        setMessages((prev) => [
+          ...prev,
+          makeMessage("assistant", "Sorry, I encountered an error. Please try again."),
+        ]);
       } finally {
         setLoading(false);
       }
@@ -108,7 +131,8 @@ export default function App() {
         <main className="main-layout">
           <div className="map-area" role="region" aria-label="Stadium map">
             <StadiumMap
-              stadiumData={stadiumData}
+              layout={layout}
+              live={live}
               activeRoute={activeRoute}
               profile={profile}
             />
@@ -124,12 +148,12 @@ export default function App() {
                   setProfile((p) => ({ ...p, location: e.target.value }))
                 }
               >
-                {stadiumData?.layout?.sections?.map((s) => (
+                {layout?.sections?.map((s) => (
                   <option key={s.id} value={s.name}>
                     {s.name} ({s.zone} zone)
                   </option>
                 ))}
-                {stadiumData?.layout?.gates?.map((g) => (
+                {layout?.gates?.map((g) => (
                   <option key={g.id} value={g.name}>
                     {g.name}
                   </option>

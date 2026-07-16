@@ -1,4 +1,4 @@
-import React, { useMemo, memo } from "react";
+import React, { useMemo, useEffect, memo } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker, useMap } from "react-leaflet";
 import L from "leaflet";
 
@@ -9,6 +9,15 @@ const CROWD_COLORS = {
   very_high: "#9c27b0",
 };
 
+const AMENITY_TYPE_ICONS = {
+  food: "🍔",
+  restroom: "🚻",
+  merchandise: "🛍️",
+  first_aid: "🏥",
+  security: "🛡️",
+  water: "💧",
+};
+
 // Degree-offset per section level/index, used to jitter section markers apart
 // within a zone so labels don't collide. Must stay comfortably larger than
 // GPS-noise scale (~1e-5 deg) — these were previously 0.00008/0.00012, too
@@ -16,17 +25,23 @@ const CROWD_COLORS = {
 const SECTION_LEVEL_OFFSET_DEG = 0.0004;
 const SECTION_INDEX_OFFSET_DEG = 0.0006;
 
+// Which direction each zone's section row fans out (lat, lng multipliers).
+const ZONE_DIRECTIONS = { north: [1, 0], south: [-1, 0], east: [0, -1], west: [0, 1] };
+
+const MAP_CENTER = [40.8125, -74.0735];
 const MAP_DEFAULT_ZOOM = 18;
 const MAP_MIN_ZOOM = 17;
 const MAP_MAX_ZOOM = 19;
 
+// Marker visuals live in App.css (.marker-label, .gate-badge, .amenity-icon,
+// .current-location-marker); the html here only carries content + a11y attributes.
 function LabelMarker({ position, text, offset = [0, -14] }) {
   return (
     <Marker
       position={position}
       icon={L.divIcon({
         className: "marker-label",
-        html: `<div role="img" aria-label="${text}" style="font-size:11px;font-weight:600;color:#333;text-shadow:1px 1px 2px white,-1px -1px 2px white;white-space:nowrap;">${text}</div>`,
+        html: `<div role="img" aria-label="${text}">${text}</div>`,
         iconSize: [0, 0],
         iconAnchor: offset,
       })}
@@ -36,7 +51,7 @@ function LabelMarker({ position, text, offset = [0, -14] }) {
 
 function FlyToLocation({ center }) {
   const map = useMap();
-  React.useEffect(() => {
+  useEffect(() => {
     if (center) {
       map.flyTo(center, map.getZoom(), { duration: 0.8 });
     }
@@ -44,21 +59,20 @@ function FlyToLocation({ center }) {
   return null;
 }
 
-function StadiumMap({ stadiumData, activeRoute, profile }) {
-  const center = [40.8125, -74.0735];
-
+function StadiumMap({ layout, live, activeRoute, profile }) {
+  // Everything derived from layout is computed exactly once — layout is fetched
+  // a single time and its identity never changes, unlike the polled live data.
   const sectionMarkers = useMemo(() => {
-    if (!stadiumData?.layout) return [];
+    if (!layout) return [];
     const zoneSections = {};
-    stadiumData.layout.sections.forEach((sec) => {
+    layout.sections.forEach((sec) => {
       if (!zoneSections[sec.zone]) zoneSections[sec.zone] = [];
       zoneSections[sec.zone].push(sec);
     });
     const result = [];
     Object.entries(zoneSections).forEach(([zone, secs]) => {
-      const zoneCoords = stadiumData.layout.zones[zone];
-      const zoneDir = { north: [1, 0], south: [-1, 0], east: [0, -1], west: [0, 1] };
-      const dir = zoneDir[zone] || [0, 0];
+      const zoneCoords = layout.zones[zone];
+      const dir = ZONE_DIRECTIONS[zone] || [0, 0];
       secs.forEach((sec, idx) => {
         const levelOffset = (sec.level - 1) * SECTION_LEVEL_OFFSET_DEG;
         const idxOffset = (idx - (secs.length - 1) / 2) * SECTION_INDEX_OFFSET_DEG;
@@ -68,17 +82,7 @@ function StadiumMap({ stadiumData, activeRoute, profile }) {
       });
     });
     return result;
-  }, [stadiumData]);
-
-  const amenityMarkers = useMemo(() => {
-    if (!stadiumData?.layout) return [];
-    return stadiumData.layout.amenities;
-  }, [stadiumData]);
-
-  const gateMarkers = useMemo(() => {
-    if (!stadiumData?.layout) return [];
-    return stadiumData.layout.gates;
-  }, [stadiumData]);
+  }, [layout]);
 
   const routeCoordinates = useMemo(() => {
     if (!activeRoute || activeRoute.length === 0) return [];
@@ -86,32 +90,22 @@ function StadiumMap({ stadiumData, activeRoute, profile }) {
   }, [activeRoute]);
 
   const profileLocation = useMemo(() => {
-    if (!stadiumData?.layout) return null;
+    if (!layout) return null;
     const loc = profile.location;
-    const gate = stadiumData.layout.gates.find((g) => g.name === loc);
+    const gate = layout.gates.find((g) => g.name === loc);
     if (gate) return [gate.lat, gate.lng];
     const section = sectionMarkers.find((s) => s.name === loc);
     if (section) return section.position;
     return null;
-  }, [profile.location, stadiumData, sectionMarkers]);
-
-  const amenityTypeIcons = {
-    food: "🍔",
-    restroom: "🚻",
-    merchandise: "🛍️",
-    first_aid: "🏥",
-    security: "🛡️",
-    water: "💧",
-  };
+  }, [profile.location, layout, sectionMarkers]);
 
   return (
     <div className="stadium-map-container">
       <MapContainer
-        center={center}
+        center={MAP_CENTER}
         zoom={MAP_DEFAULT_ZOOM}
         minZoom={MAP_MIN_ZOOM}
         maxZoom={MAP_MAX_ZOOM}
-        style={{ width: "100%", height: "100%" }}
         zoomControl={true}
       >
         <TileLayer
@@ -122,10 +116,10 @@ function StadiumMap({ stadiumData, activeRoute, profile }) {
         <FlyToLocation center={profileLocation} />
 
         {/* Zone crowd density circles */}
-        {stadiumData?.layout &&
-          Object.entries(stadiumData.layout.zones).map(([zone, coords]) => {
+        {layout &&
+          Object.entries(layout.zones).map(([zone, coords]) => {
             if (zone === "center") return null;
-            const level = stadiumData.live?.zoneCrowdDensity?.[zone] || "low";
+            const level = live?.zoneCrowdDensity?.[zone] || "low";
             return (
               <CircleMarker
                 key={zone}
@@ -148,31 +142,30 @@ function StadiumMap({ stadiumData, activeRoute, profile }) {
         ))}
 
         {/* Gate markers */}
-        {gateMarkers.map((gate) => {
-          const isOpen = stadiumData?.live?.gateStatus?.[gate.id] !== false;
+        {layout?.gates.map((gate) => {
+          const isOpen = live?.gateStatus?.[gate.id] !== false;
           return (
-            <React.Fragment key={gate.id}>
-              <Marker
-                position={[gate.lat, gate.lng]}
-                icon={L.divIcon({
-                  className: "",
-                  html: `<div role="img" aria-label="${gate.name}, ${isOpen ? "open" : "closed"}" style="background:${isOpen ? "#1e8e3e" : "#d93025"};color:white;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.3);">${isOpen ? "●" : "✕"} ${gate.name}</div>`,
-                  iconSize: [0, 0],
-                  iconAnchor: [0, -10],
-                })}
-              />
-            </React.Fragment>
+            <Marker
+              key={gate.id}
+              position={[gate.lat, gate.lng]}
+              icon={L.divIcon({
+                className: "",
+                html: `<div role="img" aria-label="${gate.name}, ${isOpen ? "open" : "closed"}" class="gate-badge ${isOpen ? "gate-badge--open" : "gate-badge--closed"}">${isOpen ? "●" : "✕"} ${gate.name}</div>`,
+                iconSize: [0, 0],
+                iconAnchor: [0, -10],
+              })}
+            />
           );
         })}
 
         {/* Amenity markers */}
-        {amenityMarkers.map((am) => (
+        {layout?.amenities.map((am) => (
           <Marker
             key={am.id}
             position={[am.lat, am.lng]}
             icon={L.divIcon({
               className: "",
-              html: `<div role="img" aria-label="${am.name} (${am.type}${am.wheelchair_accessible ? ", wheelchair accessible" : ""})" style="font-size:16px;text-shadow:0 1px 2px rgba(0,0,0,0.2);">${amenityTypeIcons[am.type] || "📍"}</div>`,
+              html: `<div role="img" aria-label="${am.name} (${am.type}${am.wheelchair_accessible ? ", wheelchair accessible" : ""})" class="amenity-icon">${AMENITY_TYPE_ICONS[am.type] || "📍"}</div>`,
               iconSize: [16, 16],
               iconAnchor: [8, 8],
             })}
@@ -188,7 +181,7 @@ function StadiumMap({ stadiumData, activeRoute, profile }) {
 
         {/* Current location marker - visually dominant */}
         {profileLocation && (
-          <React.Fragment>
+          <>
             <CircleMarker
               center={profileLocation}
               radius={18}
@@ -202,14 +195,14 @@ function StadiumMap({ stadiumData, activeRoute, profile }) {
               position={profileLocation}
               icon={L.divIcon({
                 className: "",
-                html: `<div class="current-location-marker" role="img" aria-label="Your location: ${profile.location}" style="width:24px;height:24px;background:#1a73e8;border:3px solid white;border-radius:50%;box-shadow:0 0 0 2px #1a73e8, 0 2px 8px rgba(0,0,0,0.4);"></div>`,
+                html: `<div class="current-location-marker" role="img" aria-label="Your location: ${profile.location}"></div>`,
                 iconSize: [24, 24],
                 iconAnchor: [12, 12],
               })}
             >
               <Popup><strong>Your Location</strong><br />{profile.location}</Popup>
             </Marker>
-          </React.Fragment>
+          </>
         )}
 
         {/* Active route polyline - prominent solid line */}
@@ -225,7 +218,7 @@ function StadiumMap({ stadiumData, activeRoute, profile }) {
         {/* Route waypoint markers */}
         {activeRoute && activeRoute.map((pt, i) => (
           <CircleMarker
-            key={`route-pt-${i}`}
+            key={`${pt.label}-${i}`}
             center={[pt.lat, pt.lng]}
             radius={6}
             fillColor="#1a73e8"

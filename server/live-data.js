@@ -1,40 +1,67 @@
-// Synthetic live-data generator — crowd density + gate status updates every few seconds
+// Synthetic live-data generator — crowd density + gate status evolve every few seconds.
+// Both generators are stateful: each tick derives from the previous tick instead of
+// re-randomizing from scratch, so the simulation behaves like a real venue (gates
+// mostly stay as they are, crowds build and drain gradually) rather than teleporting
+// between unrelated states every update.
 
 import { stadiumLayout } from "./stadium-data.js";
 
-const crowdLevels = ["low", "medium", "high", "very_high"];
+const CROWD_LEVELS = ["low", "medium", "high", "very_high"];
+const GATE_TOGGLE_PROBABILITY = 0.1; // per tick, per gate
+const MIN_OPEN_GATES = 3; // never strand fans: at least this many gates stay open
+const CROWD_DRIFT_PROBABILITY = 0.5; // per tick, per zone/section
 
 function randomCrowdLevel() {
-  return crowdLevels[Math.floor(Math.random() * crowdLevels.length)];
+  return CROWD_LEVELS[Math.floor(Math.random() * CROWD_LEVELS.length)];
 }
 
-export function generateCrowdDensity() {
+// Crowds change one level at a time — a zone at "low" can't jump straight to
+// "very_high" in a single 5s tick.
+function driftCrowdLevel(current) {
+  const idx = CROWD_LEVELS.indexOf(current);
+  if (idx === -1) return randomCrowdLevel();
+  if (Math.random() >= CROWD_DRIFT_PROBABILITY) return current;
+  const step = Math.random() < 0.5 ? -1 : 1;
+  const next = Math.min(CROWD_LEVELS.length - 1, Math.max(0, idx + step));
+  return CROWD_LEVELS[next];
+}
+
+export function generateCrowdDensity(previous = null) {
   const density = {};
   for (const section of stadiumLayout.sections) {
-    density[section.id] = randomCrowdLevel();
+    density[section.id] = previous
+      ? driftCrowdLevel(previous[section.id])
+      : randomCrowdLevel();
   }
   return density;
 }
 
-export function generateZoneCrowdDensity() {
+export function generateZoneCrowdDensity(previous = null) {
   const density = {};
   const zones = ["north", "east", "south", "west"];
   for (const zone of zones) {
-    density[zone] = randomCrowdLevel();
+    density[zone] = previous ? driftCrowdLevel(previous[zone]) : randomCrowdLevel();
   }
   return density;
 }
 
-export function generateGateStatus() {
+// Each gate keeps its current state with 90% probability and toggles with 10%,
+// but the stadium never drops below MIN_OPEN_GATES open gates. With no previous
+// state (first tick), all gates start open.
+export function generateGateStatus(previous = null) {
   const status = {};
   for (const gate of stadiumLayout.gates) {
-    // 90% chance gate stays in current state, 10% chance it toggles (but never close all)
-    const openCount = Object.values(status).filter((s) => s).length;
-    if (openCount < 3) {
-      status[gate.id] = true;
-    } else {
-      status[gate.id] = Math.random() > 0.1;
-    }
+    const wasOpen = previous ? previous[gate.id] !== false : true;
+    status[gate.id] = previous && Math.random() < GATE_TOGGLE_PROBABILITY ? !wasOpen : wasOpen;
+  }
+
+  const closedIds = Object.keys(status).filter((id) => !status[id]);
+  let openCount = stadiumLayout.gates.length - closedIds.length;
+  while (openCount < MIN_OPEN_GATES && closedIds.length > 0) {
+    const reopenIdx = Math.floor(Math.random() * closedIds.length);
+    status[closedIds[reopenIdx]] = true;
+    closedIds.splice(reopenIdx, 1);
+    openCount++;
   }
   return status;
 }
@@ -55,9 +82,9 @@ export function startLiveDataGenerator(intervalMs = 5000) {
   updateInterval = setInterval(() => {
     liveData = {
       timestamp: Date.now(),
-      gateStatus: generateGateStatus(),
-      crowdDensity: generateCrowdDensity(),
-      zoneCrowdDensity: generateZoneCrowdDensity(),
+      gateStatus: generateGateStatus(liveData.gateStatus),
+      crowdDensity: generateCrowdDensity(liveData.crowdDensity),
+      zoneCrowdDensity: generateZoneCrowdDensity(liveData.zoneCrowdDensity),
     };
   }, intervalMs);
   // Don't let this timer hold the process open on its own — app.listen()'s
